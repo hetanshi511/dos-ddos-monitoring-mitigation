@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DDoS Protected Site</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #4f8a8b, #d9bf77);
+            color: #333;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 3rem;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            max-width: 700px;
+            text-align: center;
+            transition: transform 0.2s;
+            font-size: 1.2rem;
+        }
+
+        .container:hover {
+            transform: scale(1.03);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #4f8a8b;
+            margin-bottom: 1rem;
+        }
+
+        p {
+            font-size: 1.2rem;
+            color: #555;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-button, .close-button {
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            color: #fff;
+            background-color: #4f8a8b;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 1rem;
+        }
+
+        .info-button:hover, .close-button:hover {
+            background-color: #3a6f70;
+        }
+
+        .learn-more-card {
+            display: none; /* Hidden by default */
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            text-align: center;
+            font-size: 1.1rem;
+            color: #555;
+            margin-top: 2rem;
+            transition: transform 0.2s;
+        }
+    </style>
+
+    <script>
+        function showLearnMore() {
+            document.querySelector('.learn-more-card').style.display = 'block';
+            document.querySelector('.info-button').style.display = 'none';  // Hide the "Learn More" button
+        }
+
+        function closeLearnMore() {
+            document.querySelector('.learn-more-card').style.display = 'none';
+            document.querySelector('.info-button').style.display = 'inline-block';  // Show the "Learn More" button again
+        }
+
+        // Function to periodically check if rate limiting status has been triggered
+        async function checkRateLimit() {
+            try {
+                let response = await fetch(window.location.href);
+                
+                // Check if the custom rate-limit header is present
+                if (response.headers.get("X-RateLimit-Exceeded") === "true") {
+                    window.location.href = "/challenge";  // Redirect to /challenge if rate limit exceeded
+                }
+            } catch (error) {
+                console.error("Error checking rate limit:", error);
+            }
+        }
+
+        // Run checkRateLimit every 2 seconds
+        setInterval(checkRateLimit, 2000); // Adjust interval as needed
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to Our DDoS Protected Site</h1>
+        <p>This site demonstrates a real-time rate-limiting solution to prevent DDoS attacks.</p>
+        <button class="info-button" onclick="showLearnMore()">Learn More</button>
+
+        <!-- Additional card to show more information -->
+        <div class="learn-more-card">
+            <h2>Project Overview</h2>
+            <p>This project uses Nginx and Lua scripting to limit excessive requests, automatically redirecting users if the rate limit is exceeded.</p>
+            <button class="close-button" onclick="closeLearnMore()">Close</button>
+        </div>
+    </div>
+</body>
+</html>

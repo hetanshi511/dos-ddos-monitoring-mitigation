@@ -1,0 +1,72 @@
+server {
+    listen 80;
+    server_name localhost;
+
+    location / {
+        root /var/www/html;
+        index rate_limited.html;
+
+        # Apply rate limiting
+        limit_req zone=per_ip_rate_limit burst=20 nodelay;
+
+        # Inline Lua code for rate limiting and redirection to challenge
+        access_by_lua_block {
+            local dict = ngx.shared.attack_dict
+            if not dict then
+                ngx.log(ngx.ERR, "Shared dictionary 'attack_dict' is not available!")
+                return
+            end
+
+            local ip = ngx.var.remote_addr
+            local count = dict:get(ip) or 0
+            ngx.log(ngx.INFO, "Request from IP: " .. ip .. " | Count: " .. count)
+
+            if count > 10 then
+                ngx.log(ngx.INFO, "IP " .. ip .. " has exceeded rate limit, sending rate-limit header.")
+                return ngx.redirect("/challenge", 302) 
+            else
+                dict:incr(ip, 1, 0)
+                ngx.timer.at(60, function() dict:incr(ip, -1) end)
+            end
+        }
+    }
+
+    # Serve /challenge page
+    location /challenge {
+        default_type 'text/html';
+        content_by_lua_block {
+            ngx.say([[
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Verification Required</title>
+                    <style>
+                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                        body { font-family: Arial, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: linear-gradient(135deg, #4f8a8b, #d9bf77); color: #333; }
+                        .container { background-color: #ffffff; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); max-width: 600px; text-align: center; transition: transform 0.2s; }
+                        .container:hover { transform: scale(1.02); }
+                        h2 { font-size: 2rem; color: #4f8a8b; margin-bottom: 1rem; }
+                        p { font-size: 1rem; line-height: 1.5; color: #555; }
+                        .verify-button { margin-top: 1.5rem; padding: 0.8rem 1.5rem; font-size: 1rem; color: #fff; background-color: #4f8a8b; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; }
+                        .verify-button:hover { background-color: #3a6f70; }
+                        .link { margin-top: 1rem; display: inline-block; color: #d9bf77; text-decoration: none; font-weight: bold; }
+                    </style>
+                    <script>
+                        function verify() { alert("Verified!"); window.location.href = "/"; }
+                    </script>
+                </head>
+                <body>
+                    <div class="container">
+                        <h2>Verification Required</h2>
+                        <p>To continue browsing, please verify that you are not a bot.</p>
+                        <p>This extra step helps us ensure a secure experience for all users.</p>
+                        <button class="verify-button" onclick="verify()">Verify</button>
+
+                    </div>
+                </body>
+                </html>
+            ]])
+        }
+    }
+}
